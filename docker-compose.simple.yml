@@ -1,0 +1,49 @@
+version: '3.8'
+
+services:
+  pfsense-mcp:
+    build:
+      context: .
+      dockerfile: Dockerfile.simple
+    image: pfsense-mcp:4.1.0
+    container_name: pfsense-mcp-server
+    restart: unless-stopped
+
+    environment:
+      # MCP Server Configuration
+      MCP_MODE: http
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 8000
+
+      # pfSense Connection (update these!)
+      PFSENSE_URL: ${PFSENSE_URL:-https://pfsense.local}
+      PFSENSE_API_KEY: ${PFSENSE_API_KEY:-your-api-key-here}
+      PFSENSE_VERSION: ${PFSENSE_VERSION:-CE_2_8_0}
+      AUTH_METHOD: api_key
+      VERIFY_SSL: ${VERIFY_SSL:-true}
+
+      # Optional Features
+      ENABLE_HATEOAS: ${ENABLE_HATEOAS:-false}
+      DEFAULT_PAGE_SIZE: ${DEFAULT_PAGE_SIZE:-20}
+      LOG_LEVEL: ${LOG_LEVEL:-INFO}
+
+    ports:
+      - "8000:8000"
+
+    volumes:
+      # Mount .env for easy configuration updates
+      - ./.env:/app/.env:ro
+
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8000/sse"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 40s
+
+    networks:
+      - mcp-network
+
+networks:
+  mcp-network:
+    driver: bridge
