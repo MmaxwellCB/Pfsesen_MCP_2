@@ -56,14 +56,26 @@ logging.basicConfig(
 logger = logging.getLogger(__name__)
 
 # Version
-VERSION = "4.0.0"
+VERSION = "4.1.0"
 
-# Initialize FastMCP server
-mcp = FastMCP(
-    "pfSense Enhanced MCP Server",
-    version=VERSION,
-    description="Advanced pfSense management with filtering, sorting, and HATEOAS support"
-)
+# Determine if running in HTTP mode (stateless)
+MCP_MODE = os.getenv("MCP_MODE", "stdio").lower()
+MCP_HOST = os.getenv("MCP_HOST", "0.0.0.0")
+MCP_PORT = int(os.getenv("MCP_PORT", "8000"))
+
+# Initialize FastMCP server with appropriate settings for transport
+if MCP_MODE == "http":
+    # Stateless HTTP mode for scalability
+    mcp = FastMCP(
+        "pfSense Enhanced MCP Server",
+        stateless_http=True,
+        json_response=True
+    )
+    logger.info("Initializing server in Streamable HTTP mode (stateless)")
+else:
+    # stdio mode for local CLI usage
+    mcp = FastMCP("pfSense Enhanced MCP Server")
+    logger.info("Initializing server in stdio mode")
 
 # Global API client
 api_client: Optional[EnhancedPfSenseAPIClient] = None
@@ -1008,12 +1020,18 @@ async def test_enhanced_connection() -> Dict:
 
 # Main execution
 if __name__ == "__main__":
-    import uvicorn
-    
-    # Run the Enhanced FastMCP server
-    uvicorn.run(
-        "main_enhanced_mcp:mcp",
-        host=os.getenv("MCP_HOST", "0.0.0.0"),
-        port=int(os.getenv("MCP_PORT", "8000")),
-        reload=os.getenv("DEBUG", "false").lower() == "true"
-    )
+    # Run as MCP server with appropriate transport
+    if MCP_MODE == "http":
+        # Set host and port via environment for uvicorn
+        os.environ["HOST"] = MCP_HOST
+        os.environ["PORT"] = str(MCP_PORT)
+
+        logger.info(f"Starting pfSense MCP Server v{VERSION} on {MCP_HOST}:{MCP_PORT}")
+        logger.info("Transport: SSE (Server-Sent Events) over HTTP")
+        logger.info(f"Server endpoint: http://{MCP_HOST}:{MCP_PORT}/sse")
+
+        mcp.run(transport="sse")
+    else:
+        logger.info(f"Starting pfSense MCP Server v{VERSION}")
+        logger.info("Transport: stdio")
+        mcp.run(transport="stdio")

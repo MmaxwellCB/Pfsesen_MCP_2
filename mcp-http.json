@@ -1,0 +1,16 @@
+{
+  "mcpServers": {
+    "pfsense-enhanced-http": {
+      "url": "http://localhost:8000/sse",
+      "description": "pfSense Enhanced MCP Server via SSE (Server-Sent Events)",
+      "transport": "sse"
+    }
+  },
+  "notes": {
+    "setup": "Start the server with HTTP transport by setting MCP_MODE=http in your .env file or environment",
+    "command": "python3 -m src.main",
+    "remote_access": "For remote pfSense instances, update the URL to your server's public IP or domain",
+    "security": "For production use, enable HTTPS with a reverse proxy (nginx, caddy, traefik)",
+    "compatibility": "Works with both Claude Code CLI and Claude web interface"
+  }
+}
